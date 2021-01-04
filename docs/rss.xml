@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Luigi Colella RSS Feed]]></title><description><![CDATA[エンジニア的性質を持ったデベロッパーを目指すブログです。]]></description><link>https://www.linkedin.com</link><generator>GatsbyJS</generator><lastBuildDate>Mon, 04 Jan 2021 06:11:02 GMT</lastBuildDate><item><title><![CDATA[トイレを教えてくれるアプリを開発する]]></title><description><![CDATA[トイレを教えてくれるアプリを開発します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00009</link><guid isPermaLink="false">https://www.linkedin.com/blog/00009トイレを教えてくれるアプリを開発する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Mon, 21 Dec 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;この記事は「&lt;a href=&quot;https://qiita.com/advent-calendar/2020/kuso-app2&quot;&gt;クソアプリ2 Advent Calendar 2020&lt;/a&gt;」の20日目の記事です。&lt;/p&gt;
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Luigi Colella RSS Feed]]></title><description><![CDATA[エンジニア的性質を持ったデベロッパーを目指すブログです。]]></description><link>https://www.linkedin.com</link><generator>GatsbyJS</generator><lastBuildDate>Mon, 04 Jan 2021 15:19:10 GMT</lastBuildDate><item><title><![CDATA[トイレを教えてくれるアプリを開発する]]></title><description><![CDATA[トイレを教えてくれるアプリを開発します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00009</link><guid isPermaLink="false">https://www.linkedin.com/blog/00009トイレを教えてくれるアプリを開発する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Mon, 21 Dec 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;この記事は「&lt;a href=&quot;https://qiita.com/advent-calendar/2020/kuso-app2&quot;&gt;クソアプリ2 Advent Calendar 2020&lt;/a&gt;」の20日目の記事です。&lt;/p&gt;
 &lt;h1&gt;TL;DR&lt;/h1&gt;
 &lt;p&gt;トイレが見つからずに困った経験、ありませんか。
 そんなとき、助けてくれる味方が欲しいと考え、アプリを作ることにしました。&lt;/p&gt;
@@ -7,7 +7,7 @@
 画像からトイレのピクトグラムを見つけた際に、音と画面の両方で教えてくれます。
 見つけた箇所にキラキラ光るエフェクトがつきます。&lt;/p&gt;
 &lt;h1&gt;デモ&lt;/h1&gt;
-&lt;p&gt;@&lt;a href=&quot;https://twitter.com/uniocto/status/1340257765176983552&quot;&gt;tweet&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;div class=&quot;gatsby-resp-iframe-wrapper&quot; style=&quot;padding-bottom: 50%; position: relative; height: 0; overflow: hidden; margin-bottom: 1.0725rem&quot; &gt; &lt;div&gt;&lt;iframe src=&quot;https://www.youtube.com/embed/g0xbKihywEc&quot; style=&quot; position: absolute; top: 0; left: 0; width: 100%; height: 100%; &quot;&gt;&lt;/iframe&gt;&lt;/div&gt; &lt;/div&gt;&lt;/p&gt;
 &lt;h1&gt;以下作るまでの流れ&lt;/h1&gt;
 &lt;h1&gt;データ準備&lt;/h1&gt;
 &lt;p&gt;近所のデパートで画像を60枚ほど撮影させていただきました。ここで必要なのは、何より精神力です。
