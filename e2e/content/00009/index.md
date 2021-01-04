@@ -19,8 +19,8 @@ cover: ./preview.png
 見つけた箇所にキラキラ光るエフェクトがつきます。
 
 # デモ
-@[tweet](https://twitter.com/uniocto/status/1340257765176983552)
 
+`youtube:https://www.youtube.com/embed/g0xbKihywEc`
 
 # 以下作るまでの流れ
 # データ準備

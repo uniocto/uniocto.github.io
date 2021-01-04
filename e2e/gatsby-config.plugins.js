@@ -38,6 +38,19 @@ module.exports = [
       options: {
         plugins: [
           {
+            resolve: "gatsby-remark-embed-youtube",
+            options: {
+              width: 800,
+              height: 400
+            }
+          },
+          {
+            resolve: `gatsby-remark-responsive-iframe`,
+            options: {
+              wrapperStyle: `margin-bottom: 1.0725rem`,
+            },
+          },
+          {
             resolve: `gatsby-remark-images`,
             options: {
               maxWidth: 1000,
@@ -47,6 +60,7 @@ module.exports = [
             },
           },
           'gatsby-remark-prismjs'
+          
         ]
       }
     },
