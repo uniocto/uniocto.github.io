@@ -1,0 +1,1314 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Luigi Colella RSS Feed]]></title><description><![CDATA[エンジニア的性質を持ったデベロッパーを目指すブログです。]]></description><link>https://www.linkedin.com</link><generator>GatsbyJS</generator><lastBuildDate>Mon, 04 Jan 2021 06:11:02 GMT</lastBuildDate><item><title><![CDATA[トイレを教えてくれるアプリを開発する]]></title><description><![CDATA[トイレを教えてくれるアプリを開発します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00009</link><guid isPermaLink="false">https://www.linkedin.com/blog/00009トイレを教えてくれるアプリを開発する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Mon, 21 Dec 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;この記事は「&lt;a href=&quot;https://qiita.com/advent-calendar/2020/kuso-app2&quot;&gt;クソアプリ2 Advent Calendar 2020&lt;/a&gt;」の20日目の記事です。&lt;/p&gt;
+&lt;h1&gt;TL;DR&lt;/h1&gt;
+&lt;p&gt;トイレが見つからずに困った経験、ありませんか。
+そんなとき、助けてくれる味方が欲しいと考え、アプリを作ることにしました。&lt;/p&gt;
+&lt;h1&gt;使い方&lt;/h1&gt;
+&lt;p&gt;アプリを起動する。カメラを振り回してください。
+画像からトイレのピクトグラムを見つけた際に、音と画面の両方で教えてくれます。
+見つけた箇所にキラキラ光るエフェクトがつきます。&lt;/p&gt;
+&lt;h1&gt;デモ&lt;/h1&gt;
+&lt;p&gt;@&lt;a href=&quot;https://twitter.com/uniocto/status/1340257765176983552&quot;&gt;tweet&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;以下作るまでの流れ&lt;/h1&gt;
+&lt;h1&gt;データ準備&lt;/h1&gt;
+&lt;p&gt;近所のデパートで画像を60枚ほど撮影させていただきました。ここで必要なのは、何より精神力です。
+周囲の迷惑をかけず、かつ誤解を招かないよう最新の注意を払いながら撮影しました。
+ここのベストプラクティスは、「普段使わないが、決して怪しくない服装」、「人気が少ない時間」、「人気の少ない場所」、「全身でトイレのアイコンのみを撮りに行く」、「人を一切映さない」です。
+なお、ここ以降でお伝えできるプラクティスはないです。&lt;/p&gt;
+&lt;h1&gt;前処理&lt;/h1&gt;
+&lt;p&gt;前処理はlabelImageを利用いたしました。ポチポチ枠をつけて、xml形式で保存します。
+&lt;a href=&quot;https://github.com/tzutalin/labelImg&quot;&gt;https://github.com/tzutalin/labelImg&lt;/a&gt;
+&lt;img src=&quot;https://storage.googleapis.com/zenn-user-upload/8vgggm8ceei4aqv95g9ixzt49r7u&quot;&gt;&lt;/p&gt;
+&lt;h1&gt;モデル構築&lt;/h1&gt;
+&lt;p&gt;tensorflowのチュートリアルを参考に、モデルを構築しました。Google先生には頭が上がりません。
+&lt;a href=&quot;https://github.com/tensorflow/models/blob/master/research/object_detection/colab_tutorials/eager_few_shot_od_training_tflite.ipynb&quot;&gt;https://github.com/tensorflow/models/blob/master/research/object_detection/colab_tutorials/eager_few_shot_od_training_tflite.ipynb&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;xmlを読み込む際につけたラベルは以下みたいな感じで処理しました。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; glob
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; xml&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;etree&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ElementTree &lt;span class=&quot;token keyword&quot;&gt;as&lt;/span&gt; ET
+files &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; glob&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;glob&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;annotations_dir&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+image_width &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;640&lt;/span&gt;
+image_height &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;853&lt;/span&gt;
+
+gt_boxes &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+image_f_names &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt; i &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; files&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    tree &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; ET&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;parse&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;i&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    root &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; tree&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;getroot&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    image_f_names&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;append&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;os&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;path&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;basename&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;text&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    gt_boxes&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;append&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;array&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;
+        &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;text&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; image_width&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# x&lt;/span&gt;
+        &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;text&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; image_height&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# y&lt;/span&gt;
+        &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;text&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; image_width&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# w&lt;/span&gt;
+        &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;root&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;text&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; image_height &lt;span class=&quot;token comment&quot;&gt;# h&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; dtype&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;float32&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;アプリを開発する&lt;/h1&gt;
+&lt;p&gt;趣味でflutterを触っていたため、下記リポジトリを参考にアプリ部分を実装しました。
+シンプルなアプリですので、やっていることは以下リポジトリと大体同じです。
+&lt;a href=&quot;https://github.com/shaqian/flutter_realtime_detection&quot;&gt;https://github.com/shaqian/flutter_realtime_detection&lt;/a&gt;&lt;/p&gt;
+&lt;h3&gt;音声出力を担うクラス&lt;/h3&gt;
+&lt;p&gt;flutter&lt;em&gt;ttsというライブラリを使用いたしました。
+&lt;a href=&quot;https://pub.dev/packages/flutter&quot;&gt;https://pub.dev/packages/flutter&lt;/a&gt;&lt;/em&gt;tts&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;dart&quot;&gt;&lt;pre class=&quot;language-dart&quot;&gt;&lt;code class=&quot;language-dart&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;dart:async&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;dart:math&apos;&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;as&lt;/span&gt; math&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;dart:io&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;show&lt;/span&gt; Platform&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;package:flutter_tts/flutter_tts.dart&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;package:flutter/foundation.dart&apos;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;show&lt;/span&gt; kIsWeb&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; List&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;String&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; customaryEpithet &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;
+  &lt;span class=&quot;token string&quot;&gt;&quot;Buddy! I found the toilet.&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;token string&quot;&gt;&quot;You&apos;re lucky. That&apos;s the goal.&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;token string&quot;&gt;&quot;Maybe it&apos;s the toilet.&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;token string&quot;&gt;&quot;You can trust me, or you can lose everything here.&quot;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+
+&lt;span class=&quot;token keyword&quot;&gt;enum&lt;/span&gt; TtsState &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; playing&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; stopped&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; paused&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; continued &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;Speecher&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; _instance&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;factory&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Speecher&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;_instance &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+      _instance &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;Speecher&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;_internal&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      _instance&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;initTts&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; _instance&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+  Speecher&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;_internal&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  FlutterTts flutterTts&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;dynamic&lt;/span&gt; languages&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  String language&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  double volume &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  double pitch &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  double rate &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;final&lt;/span&gt; random &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; math&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;Random&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  TtsState ttsState &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;stopped&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;token keyword&quot;&gt;get&lt;/span&gt; isPlaying &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; ttsState &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;playing&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;token keyword&quot;&gt;get&lt;/span&gt; isStopped &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; ttsState &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;stopped&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;token keyword&quot;&gt;get&lt;/span&gt; isPaused &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; ttsState &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;paused&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;token keyword&quot;&gt;get&lt;/span&gt; isContinued &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; ttsState &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;continued&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;token function&quot;&gt;initTts&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    flutterTts &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;FlutterTts&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;token function&quot;&gt;_getLanguages&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;!&lt;/span&gt;kIsWeb&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;Platform&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;isAndroid&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;token function&quot;&gt;_getEngines&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    flutterTts&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;setVolume&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;volume&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    flutterTts&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;setSpeechRate&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;rate&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    flutterTts&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;setPitch&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;pitch&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+  Future &lt;span class=&quot;token function&quot;&gt;_getLanguages&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    languages &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; flutterTts&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;getLanguages&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+  Future &lt;span class=&quot;token function&quot;&gt;_getEngines&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; engines &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; flutterTts&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;getEngines&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;engines &lt;span class=&quot;token operator&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;dynamic&lt;/span&gt; engine &lt;span class=&quot;token keyword&quot;&gt;in&lt;/span&gt; engines&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;token function&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;engine&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+  Future &lt;span class=&quot;token function&quot;&gt;speakText&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;ttsState &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;stopped&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+      ttsState &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;playing&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; flutterTts&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;awaitSpeakCompletion&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token boolean&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; flutterTts&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;speak&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;customaryEpithet&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;random&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;nextInt&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;customaryEpithet&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;length&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      ttsState &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; TtsState&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;stopped&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h3&gt;キラキラのエフェクトをつけるwidget&lt;/h3&gt;
+&lt;p&gt;glittersというライブラリを使用して実装しました。キラキラの表示範囲を絞る際の枠計算は元のものとほとんど同じです。
+&lt;a href=&quot;https://pub.dev/packages/glitters&quot;&gt;https://pub.dev/packages/glitters&lt;/a&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;dart&quot;&gt;&lt;pre class=&quot;language-dart&quot;&gt;&lt;code class=&quot;language-dart&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;dart:math&apos;&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;as&lt;/span&gt; math&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;package:flutter/material.dart&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;package:glitters/glitters.dart&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;package:quntum_mind/resources/models/results.dart&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;package:quntum_mind/widgets/components/speecher.dart&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;BndBox&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;extends&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;StatelessWidget&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;token keyword&quot;&gt;final&lt;/span&gt; BndBoxResult bndboxresult&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;token function&quot;&gt;BndBox&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;bndboxresult&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+  &lt;span class=&quot;token metadata symbol&quot;&gt;@override&lt;/span&gt;
+  Widget &lt;span class=&quot;token function&quot;&gt;build&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;BuildContext context&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+    Size screen &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; MediaQuery&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;of&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;context&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;size&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;final&lt;/span&gt; List&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;dynamic&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; results &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; bndboxresult&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;results&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;final&lt;/span&gt; int previewH &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; bndboxresult&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;height&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;final&lt;/span&gt; int previewW &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; bndboxresult&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;width&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;final&lt;/span&gt; double screenH &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; math&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;screen&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;height&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; screen&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;width&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;final&lt;/span&gt; double screenW &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; math&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;min&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;screen&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;height&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; screen&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;width&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+    List&lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;Widget&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;_renderBox&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;results&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;length &lt;span class=&quot;token operator&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;results&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;detectedClass&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;toilet&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; _x &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; results&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;rect&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;x&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; _w &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; results&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;rect&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;w&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; _y &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; results&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;rect&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;y&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; _h &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; results&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;rect&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;h&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      double scaleW&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; scaleH&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; x&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; y&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; w&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; h&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+      &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;screenH &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; screenW &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; previewH &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; previewW&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        scaleW &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; screenH &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; previewH &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; previewW&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        scaleH &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; screenH&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; difW &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;scaleW &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; screenW&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; scaleW&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        x &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;_x &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; difW &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleW &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        w &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; _w &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleW &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;_x &lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt; difW &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; w &lt;span class=&quot;token operator&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;difW &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; _x&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleW&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        y &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; _y &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleH &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        h &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; _h &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleH &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        scaleH &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; screenW &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; previewW &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; previewH&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        scaleW &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; screenW&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;var&lt;/span&gt; difH &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;scaleH &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; screenH&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; scaleH&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        x &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; _x &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleW &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        w &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; _w &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleW &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        y &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;_y &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; difH &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleH &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        h &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; _h &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleH &lt;span class=&quot;token operator&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;_y &lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt; difH &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; h &lt;span class=&quot;token operator&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;difH &lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt; _y&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt; scaleH&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+      &lt;span class=&quot;token function&quot;&gt;Speecher&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;speakText&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;
+        &lt;span class=&quot;token function&quot;&gt;Positioned&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+          left&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; math&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; x&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+          top&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; math&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;max&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; y&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+          width&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; w&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+          height&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; h&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+          child&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Container&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+            padding&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; EdgeInsets&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token function&quot;&gt;only&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;top&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;5.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; left&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;5.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+            child&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Stack&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+              children&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;&amp;lt;&lt;/span&gt;Widget&lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;
+                &lt;span class=&quot;token function&quot;&gt;Glitters&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+                  minSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;8.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  maxSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  interval&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Duration&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;zero&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  maxOpacity&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0.7&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token function&quot;&gt;Glitters&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+                  minSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;10.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  maxSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;25.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  interval&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Duration&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;milliseconds&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  color&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Colors&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;lime&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token function&quot;&gt;Glitters&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+                  minSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;10.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  maxSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;25.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  duration&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Duration&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;milliseconds&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  inDuration&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Duration&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;milliseconds&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;500&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  outDuration&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Duration&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;milliseconds&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;500&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  interval&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Duration&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;milliseconds&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  color&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Colors&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;white&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  maxOpacity&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0.7&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token function&quot;&gt;Glitters&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+                  minSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;14.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  maxSize&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30.0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  interval&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Duration&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;milliseconds&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                  color&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Colors&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;orange&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+              &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+            &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+          &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+      &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;Stack&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+      children&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;_renderBox&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;雑感&lt;/h1&gt;
+&lt;p&gt;クソアプリは毎年楽しみにしていたので、参加できて良かったです。
+なお、アプリは年始にandroid版をリリースする予定です。
+もしご興味のある方は、こんなクソでもインストールいただけると嬉しいです。&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Big Query上に貪欲法を実装する]]></title><description><![CDATA[Big Queryで動作する貪欲法をご紹介します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00008</link><guid isPermaLink="false">https://www.linkedin.com/blog/00008Big Query上に貪欲法を実装する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Sun, 20 Dec 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;この記事は「&lt;a href=&quot;https://qiita.com/advent-calendar/2020/gcp&quot;&gt;Google Cloud Platform Advent Calendar 2020&lt;/a&gt;」の11日目の記事です。&lt;/p&gt;
+&lt;h1&gt;TL;DR&lt;/h1&gt;
+&lt;p&gt;機械学習システム等で予測した結果から、組み合わせの最適化をしたいケースがあると思います。
+本ページはSQLで貪欲法を実装するケースを紹介します。貪欲法なので、最適解は得られませんが、計算コストとして安かったため、ご紹介させてください。
+なお、今回実装するにあたり、Big Queryを使用しております。&lt;/p&gt;
+&lt;h1&gt;貪欲法で解く問題について&lt;/h1&gt;
+&lt;p&gt;いい感じのデータセットを見つけられなかったため、ベタ打ちで作りました。
+おやつの分類ごとに予算が決まっていた時、購入するおやつの重量が最大となる組み合わせを探索しております。インプットテーブルは2つあり、1つはおやつ毎の値段、重さ、種類を、もう一方は種類毎の予算を保持しております。&lt;/p&gt;
+&lt;h2&gt;インプット1:おやつ毎のデータ&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;item&lt;/th&gt;
+&lt;th&gt;item_type&lt;/th&gt;
+&lt;th&gt;item_weight&lt;/th&gt;
+&lt;th&gt;price&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;バナナ&lt;/td&gt;
+&lt;td&gt;フルーツ&lt;/td&gt;
+&lt;td&gt;150&lt;/td&gt;
+&lt;td&gt;50&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;キウイ&lt;/td&gt;
+&lt;td&gt;フルーツ&lt;/td&gt;
+&lt;td&gt;110&lt;/td&gt;
+&lt;td&gt;40&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;イチゴ&lt;/td&gt;
+&lt;td&gt;フルーツ&lt;/td&gt;
+&lt;td&gt;50&lt;/td&gt;
+&lt;td&gt;30&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;チョコレート&lt;/td&gt;
+&lt;td&gt;甘味&lt;/td&gt;
+&lt;td&gt;40&lt;/td&gt;
+&lt;td&gt;30&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ふ菓子&lt;/td&gt;
+&lt;td&gt;甘味&lt;/td&gt;
+&lt;td&gt;10&lt;/td&gt;
+&lt;td&gt;20&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ガム&lt;/td&gt;
+&lt;td&gt;甘味&lt;/td&gt;
+&lt;td&gt;20&lt;/td&gt;
+&lt;td&gt;30&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ポテトチップス&lt;/td&gt;
+&lt;td&gt;スナック&lt;/td&gt;
+&lt;td&gt;30&lt;/td&gt;
+&lt;td&gt;60&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;カツ&lt;/td&gt;
+&lt;td&gt;スナック&lt;/td&gt;
+&lt;td&gt;15&lt;/td&gt;
+&lt;td&gt;20&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ガム&lt;/td&gt;
+&lt;td&gt;スナック&lt;/td&gt;
+&lt;td&gt;15&lt;/td&gt;
+&lt;td&gt;30&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;インプット2:種類毎の予算&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;item_type&lt;/th&gt;
+&lt;th&gt;budget&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;フルーツ&lt;/td&gt;
+&lt;td&gt;70&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;甘味&lt;/td&gt;
+&lt;td&gt;50&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;スナック&lt;/td&gt;
+&lt;td&gt;60&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1&gt;SQL&lt;/h1&gt;
+&lt;p&gt;1円あたりの重さが高い順にピックアップするように実装しております。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;with&lt;/span&gt; items &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;バナナ&quot;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; item&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;フルーツ&quot;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; item_type&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;150&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; item_weight&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;50&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; price
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;キウイ&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;フルーツ&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;110&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;40&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;イチゴ&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;フルーツ&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;チョコレート&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;甘味&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;40&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;ふ菓子&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;甘味&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;ガム&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;甘味&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;ポテトチップス&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;スナック&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;60&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;カツ&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;スナック&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;15&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;20&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;ガム&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;スナック&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;15&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;30&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+budgets &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;フルーツ&quot;&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; item_type&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;70&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; budget
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;甘味&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;50&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;UNION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;ALL&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&quot;スナック&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;60&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+add_cpa &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        item
+        &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; item_weight
+        &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; item_type
+        &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; price
+        &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; ROW_NUMBER&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OVER&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;PARTITION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; item_type &lt;span class=&quot;token keyword&quot;&gt;ORDER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; item_weight&lt;span class=&quot;token operator&quot;&gt;/&lt;/span&gt;price &lt;span class=&quot;token keyword&quot;&gt;DESC&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; price &lt;span class=&quot;token keyword&quot;&gt;ASC&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; cpa_rank
+    &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+        items
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+add_stack_weight &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+        &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt;
+        &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;SUM&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;price&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OVER&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;PARTITION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; item_type &lt;span class=&quot;token keyword&quot;&gt;ORDER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; cpa_rank &lt;span class=&quot;token keyword&quot;&gt;ASC&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; stack_price
+    &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+        add_cpa
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+    add_stack_weight&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; budgets&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;budget
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+    add_stack_weight
+&lt;span class=&quot;token keyword&quot;&gt;INNER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt; budgets
+    &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt;
+       add_stack_weight&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;item_type &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; budgets&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;item_type
+&lt;span class=&quot;token keyword&quot;&gt;WHERE&lt;/span&gt;
+    add_stack_weight&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;stack_price &lt;span class=&quot;token operator&quot;&gt;&amp;lt;=&lt;/span&gt; budgets&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;budget&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;クエリの結果&lt;/h1&gt;
+&lt;p&gt;以下のようになります。item&lt;em&gt;type = &quot;フルーツ&quot;となっている物は、イチゴとキウイが最適解になりますが、今回の実装的に最もコスパの良いバナナを選んでいますね。
+| item | item&lt;/em&gt;weight | item&lt;em&gt;type | price | cpa&lt;/em&gt;rank | stack_price | budget |
+| --- | --- | ---| ---| ---| --- | ---|
+| カツ | 15 | スナック | 20 | 1 | 20 | 60 |
+| ガム | 15 | スナック | 30 | 2 | 50 | 60 |
+| バナナ | 150 | フルーツ | 50 | 1 | 50 | 70 |
+| チョコレート | 40 | 甘味 | 30 | 1 | 30 | 50 |&lt;/p&gt;
+&lt;h1&gt;結論&lt;/h1&gt;
+&lt;p&gt;SQLで貪欲法を実装しました。バッチで組み合わせ最適化テーブルを作る際に選択肢に上がると幸いです。&lt;/p&gt;</content:encoded></item><item><title><![CDATA[pythonにおける文字列フォーマットのプラクティス]]></title><description><![CDATA[pythonの文字列のフォーマットには、3パターンがあります。本記事ではこれらを利用した際のプラクティスを紹介します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00007</link><guid isPermaLink="false">https://www.linkedin.com/blog/00007pythonにおける文字列フォーマットのプラクティス</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Mon, 31 Aug 2020 00:00:00 GMT</pubDate><content:encoded>&lt;h1&gt;概要&lt;/h1&gt;
+&lt;p&gt;pythonの文字列のフォーマットには、下記3パターンがあります。本記事ではこれらを利用した際のプラクティスを紹介します。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;フォーマット式&lt;/li&gt;
+&lt;li&gt;フォーマットメソッド&lt;/li&gt;
+&lt;li&gt;フォーマット文字列&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1&gt;結論&lt;/h1&gt;
+&lt;p&gt;可読性を優先する場合、テンプレートの利用有無で、使用するフォーマット機能を変えるとよろしいかと思います。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;テンプレートを使用する・・・フォーマット式かフォーマットメソッドでキーを指定&lt;/li&gt;
+&lt;li&gt;テンプレートを使用しない・・・フォーマット文字列を使用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;first &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;hello&quot;&lt;/span&gt;
+second &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;world&quot;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;# テンプレート使用する場合&lt;/span&gt;
+template_formula &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;%(first)s %(second)s!&quot;&lt;/span&gt;
+template_method &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;{first} {second}!&quot;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_formula &lt;span class=&quot;token operator&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;first&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;second&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマット式&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_method&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; second&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマットメソッド&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;# 使用しない場合&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string-interpolation&quot;&gt;&lt;span class=&quot;token string&quot;&gt;f&quot;&lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt; &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;!&quot;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマット文字列&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;フォーマット式&lt;/h1&gt;
+&lt;p&gt;型制御や辞書によるフォーマットが可能です。Cに馴染みのある方は利用されているかもしれません。私はほとんど使いませんが、使う時は辞書を渡すようにしております。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;first &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;hello&quot;&lt;/span&gt;
+second &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;world&quot;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;%s %s!&quot;&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; second&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;#　辞書を引数とする場合&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;%(first)s %(second)s!&quot;&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;first&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;second&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;フォーマットメソッド&lt;/h1&gt;
+&lt;p&gt;文字列のオブジェクトが持つメソッドです。フォーマット式と似たように、パラメータを指定することが可能です。
+私はフォーマットが定まっている場合、基本的にフォーマットメソッドを用いて、パラメータを指定するようにしております。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;first &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;hello&quot;&lt;/span&gt;
+second &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;world&quot;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;{} {}!&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; second&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;{0} {1}!&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; second&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;{first} {second}!&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; second&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;フォーマット文字列&lt;/h1&gt;
+&lt;p&gt;文字列のオブジェクトを作成する際に、先頭にfをつけることで利用できる機能です。python3.6より利用可能です。書き方のパターンはこれまでより少ないですが、変数名を指定するだけでフォーマット可能なため、純粋なコードの記述量が少なく、可読性は高いと思います。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;first &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;hello&quot;&lt;/span&gt;
+second &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;world&quot;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string-interpolation&quot;&gt;&lt;span class=&quot;token string&quot;&gt;f&quot;&lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt; &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;!&quot;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;それぞれの使い分け&lt;/h1&gt;
+&lt;p&gt;フォーマット文字列は可読性が高いですが、評価時に文字列が固定されてしまうため、テンプレートの利用には適しておりません。そのため、フォーマットを固定したい場合には、お好みでフォーマット式かフォーマットメソッドの利用を推奨します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;first &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;hello&quot;&lt;/span&gt;
+second &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;world&quot;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;# テンプレート使用&lt;/span&gt;
+template_formula &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;%(first)s %(second)s!&quot;&lt;/span&gt;
+template_method &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;{first} {second}!&quot;&lt;/span&gt;
+template_str &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string-interpolation&quot;&gt;&lt;span class=&quot;token string&quot;&gt;f&quot;&lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt; &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;!&quot;&lt;/span&gt;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_formula &lt;span class=&quot;token operator&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;first&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;second&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマット式&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_method&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; second&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマットメソッド&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_str&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマット文字列&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;
+
+second &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;again&quot;&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_formula &lt;span class=&quot;token operator&quot;&gt;%&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;first&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;second&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマット式&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello again!&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_method&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;first&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;first&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; second&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;second&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマットメソッド&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello again!&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;template_str&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;# フォーマット文字列&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;# hello world!&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content:encoded></item><item><title><![CDATA[Big Queryにおけるデータマートテーブル開発アンチパターン]]></title><description><![CDATA[Big Query上でデータマートテーブル開発を行う上で、私が出会ったアンチパターンを紹介いたします。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00006</link><guid isPermaLink="false">https://www.linkedin.com/blog/00006Big Queryにおけるデータマートテーブル開発アンチパターン</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Fri, 31 Jul 2020 00:00:00 GMT</pubDate><content:encoded>&lt;h1&gt;TL;DR&lt;/h1&gt;
+&lt;p&gt;Big Query上でデータマートテーブル開発を行う上で、私が出会ったアンチパターンを紹介いたします。&lt;/p&gt;
+&lt;h1&gt;前提&lt;/h1&gt;
+&lt;ol&gt;
+&lt;li&gt;本記事内では便宜上、下記定義を利用します。&lt;/li&gt;
+&lt;li&gt;データマート→GCPのBig Query（以後BQ）を前提に書きます。&lt;/li&gt;
+&lt;li&gt;アンチパターン→開発や導入を阻害する一般的で再発性の高い障害要因。&lt;/li&gt;
+&lt;li&gt;衝動的に書いた為、抜け漏れ、誤字脱字はご指摘くださると幸いです。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1&gt;設計編&lt;/h1&gt;
+&lt;p&gt;データマートのテーブルを設計する際に、発生するアンチパターンを紹介します。この段階で発生したアンチパターンは、運用時に不要な工数を生み出す原因となるため、注意が必要となります。&lt;/p&gt;
+&lt;h2&gt;命名の自由度が高い&lt;/h2&gt;
+&lt;p&gt;パッと見何を指しているのかわからないテーブル名、カラム名はアンチパターンとしています。「相対値（new/old/neo/_1）」、「受け継いだカラム名を変更する」、「日本語と英語が合体」など、アンチパターンは様々です。
+対処法は、&lt;code class=&quot;language-text&quot;&gt;「命名ルールの継続的作成」、「レビュー」、「ユーザーのリファクタリングへの理解」&lt;/code&gt;の3つだと考えております。
+命名規則は、ググれば出てくるため、事例を見た上で、小さいことから少しずつチームに合ったルールを作り始めるとよろしいかと思います。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;CREATE&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;TABLE&lt;/span&gt; new_kpi_monitoring &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+      department &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; dp&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;token function&quot;&gt;SUM&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;amount&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;as&lt;/span&gt; kpi_1&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;token function&quot;&gt;AVG&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;amount&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;as&lt;/span&gt; kpi_2
+    &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+      sales_history
+    &lt;span class=&quot;token keyword&quot;&gt;group&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;by&lt;/span&gt; department
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;--GOOD&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;CREATE&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;TABLE&lt;/span&gt; department_kpi_monitoring &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+      department&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;token function&quot;&gt;SUM&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;amount&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; sum_amount&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;token function&quot;&gt;AVG&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;amount&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; avg_amount
+    &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+      sales_histories
+    &lt;span class=&quot;token keyword&quot;&gt;group&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;by&lt;/span&gt; department
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;マスタが正規化されていない&lt;/h2&gt;
+&lt;p&gt;そもそもマスタとは何かという話にもなりそうですが。マスタが正規化されておらず、レコードが百行以上の場合、正規化を検討することを推奨します。正規化しない場合、「重複した情報を保持するマスタテーブルが乱立」、「データの漏れや重複」といった事象に繋がる恐れもあるため、&lt;code class=&quot;language-text&quot;&gt;正規化&lt;/code&gt;することを推奨します。&lt;/p&gt;
+&lt;h2&gt;異なる意味を持つテーブルを一つにまとめる&lt;/h2&gt;
+&lt;p&gt;異なる意味を持つテーブルを一つにまとめる事をアンチパターンとしております。
+特にBig Queryの仕様として、取込時間パーティションという機能があり、これを悪用したケースが多く見受けられます。
+取込時間パーティションは任意の年月日を指定できるため、&lt;code class=&quot;language-text&quot;&gt;2200-01-01&lt;/code&gt;といった未来日付も、BQがまだ生まれていない&lt;code class=&quot;language-text&quot;&gt;1900-01-01&lt;/code&gt;といった日付も指定可能です。
+例えば、&lt;code class=&quot;language-text&quot;&gt;2200-01-01&lt;/code&gt;は現時点の全データを、本日日付にはこれまでとの差分データを、&lt;code class=&quot;language-text&quot;&gt;1900-01-01&lt;/code&gt;には特定の条件を絞って抽出したデータを保持している場合、このアンチパターンに当てはまります。&lt;code class=&quot;language-text&quot;&gt;スキーマが同じだからと安易に一つのテーブルに合わせず、意味単位でのテーブル作成する&lt;/code&gt;ことを推奨します。&lt;/p&gt;
+&lt;h2&gt;復旧オペレーションを視野に入れていない設計&lt;/h2&gt;
+&lt;p&gt;分析用のデータは欠損し、復旧対応を行うケースがあります。復旧が一切不要な環境であれば、関係ありません。
+復旧作業時は落ち着けずヒューマンエラーのリスクが高まるため、設計時に復旧オペレーションを確立している、そもそも&lt;code class=&quot;language-text&quot;&gt;復旧不要が不要となるような設計、仕組み&lt;/code&gt;を目指すべきだと考えております。例えばですが、以下のようなプラクティスが挙げられます。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;利用するテーブルは基本的にrawデータを使用し、洗い変えられるようなテーブルは基本的に参照しない（復旧工程の複雑さを防ぐ）&lt;/li&gt;
+&lt;li&gt;日付等、特定のパラメータで復旧可能なようにジョブと合わせてテーブルを設計する&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1&gt;SQL編&lt;/h1&gt;
+&lt;p&gt;SQLのコーディングにおけるアンチパターンです。Big Query向けの内容になります。以下から、ラフなSQLのコードを用いて、アンチパターンを説明します。&lt;/p&gt;
+&lt;h2&gt;予約語が小文字&lt;/h2&gt;
+&lt;p&gt;可読性が下がります。私も開発時は小文字だけで書いちゃいますが、運用に乗せる時には、フォーマットを整えます。ルール作りが面倒であれば、&lt;code class=&quot;language-text&quot;&gt;チーム共通のフォーマッターを導入する&lt;/code&gt;ことを推奨します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;select&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; sample_table
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt; &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; sample_table
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;フォーマットがばらばら&lt;/h2&gt;
+&lt;p&gt;SQLを書く人が増えれば増えるほど、発生するアンチパターンです。上と同様、&lt;code class=&quot;language-text&quot;&gt;フォーマッターを統一する&lt;/code&gt;のが、ベストだと考えております。Big QueryのGUIからでも始める事を推奨します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+       b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+       c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+       &lt;span class=&quot;token function&quot;&gt;sum&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;d&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; sum_d
+       &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;e
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; sample_table
+&lt;span class=&quot;token keyword&quot;&gt;GROUP&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; e
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+  a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;token function&quot;&gt;sum&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;d&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; sum_d&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  e
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; sample_table
+&lt;span class=&quot;token keyword&quot;&gt;GROUP&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; e
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;テーブル名とカラム名に大文字と小文字を混ぜて使用する&lt;/h2&gt;
+&lt;p&gt;DBによって、大文字、小文字を区別するか異なります。そのため、DB移行時にはデータ処理のリファクタリングが必要な手間が増やし、読みにくいと、何一つ利点はないと思っています。可搬性や保守性を考えると、&lt;code class=&quot;language-text&quot;&gt;小文字で統一すること&lt;/code&gt;を推奨します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;P_KEY&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sum_num
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+ dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;TABLE&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;p_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sum_num
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+ dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;table&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;window関数を使わない&lt;/h2&gt;
+&lt;p&gt;window関数を使わない場合、自己結合が連なったSQLが生まれます。
+無用なデータロードや結合の原因となるため、&lt;code class=&quot;language-text&quot;&gt;自己結合を見かけた場合はwindow関数の利用を検討する&lt;/code&gt;とよろしいかと思います。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;WITH&lt;/span&gt; sum_num &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+ &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+  partition_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;token function&quot;&gt;SUM&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;num&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; sum_num
+  dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;table&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;p_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sum_num
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+ dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;table&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; a
+&lt;span class=&quot;token keyword&quot;&gt;LEFT&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OUTER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt;
+ sum_num b
+ &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt;
+  a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;partition_key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;partition_key
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;--GOOD&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ p_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ &lt;span class=&quot;token function&quot;&gt;SUM&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;num&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OVER&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;PARTITION&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; partition_key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; sum_num
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+ dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;table&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;ネストが深い&lt;/h2&gt;
+&lt;p&gt;ネストは書きやすいですが、同時に可読性を落とす機能です。特に以下みたいなコードは読む気が失せます。&lt;code class=&quot;language-text&quot;&gt;with句を利用して、可読性の高いコードを目指すこと&lt;/code&gt;を推奨します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ b_column&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ &lt;span class=&quot;token function&quot;&gt;COUNT&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;DISTINCT&lt;/span&gt; p_key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; p_key_cnt&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ &lt;span class=&quot;token function&quot;&gt;COUNT&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;DISTINCT&lt;/span&gt; foreign_key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; foreign_key
+ &lt;span class=&quot;token function&quot;&gt;AVG&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;DISTINCT&lt;/span&gt; sum_by_foreign_key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; avg_sum_by_foreign_key
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+  &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+   &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+    a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;p_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;b_column&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    c&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sum_by_foreign_key
+   &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+     &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+      p_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      foreign_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      filter_column
+     &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+      dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;table_a
+     &lt;span class=&quot;token keyword&quot;&gt;WHERE&lt;/span&gt;
+      filter_column &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;2020-01-01&apos;&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; a
+    &lt;span class=&quot;token keyword&quot;&gt;INNER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt; 
+    &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+     &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+      foreign_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      b_column
+     &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+      dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;table_b
+    &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; b
+    &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt;
+     a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key
+    &lt;span class=&quot;token keyword&quot;&gt;LEFT&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OUTER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt;
+     &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+     &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+      foreign_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;token function&quot;&gt;SUM&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;sum_target&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; sum_by_foreign_key
+     &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+      dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;table_a
+     &lt;span class=&quot;token keyword&quot;&gt;WHERE&lt;/span&gt;
+      filter_column &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;2020-01-01&apos;&lt;/span&gt;
+     &lt;span class=&quot;token keyword&quot;&gt;GROUP&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt;
+      foreign_key
+     &lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; c
+     &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt;
+      a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; c&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;GROUP&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; b_column
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;WITH&lt;/span&gt; foreign_sum &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+ &lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+  foreign_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;token function&quot;&gt;SUM&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;sum_target&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; sum_by_foreign_key
+ &lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+  dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;table_a
+ &lt;span class=&quot;token keyword&quot;&gt;WHERE&lt;/span&gt;
+  filter_column &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;2020-01-01&apos;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;b_column&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ &lt;span class=&quot;token function&quot;&gt;COUNT&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;DISTINCT&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;p_key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; p_key_cnt&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ &lt;span class=&quot;token function&quot;&gt;COUNT&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;DISTINCT&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; foreign_key&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ &lt;span class=&quot;token function&quot;&gt;AVG&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;c&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;sum_by_foreign_key&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; avg_sum_by_foreign_key
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;table_a &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; a
+&lt;span class=&quot;token keyword&quot;&gt;INNER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt;
+ dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;table_b &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; b
+ &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt;
+  a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key
+&lt;span class=&quot;token keyword&quot;&gt;LEFT&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OUTER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt; 
+ foreign_sum &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; c
+ &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; c&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key
+&lt;span class=&quot;token keyword&quot;&gt;WHERE&lt;/span&gt;
+ a&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;filter_column &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;2020-01-01&apos;&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;GROUP&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; b&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;b_column
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;データを絞るタイミングが遅い&lt;/h2&gt;
+&lt;p&gt;クエリのパフォーマンスに影響が出るため、必要なカラム、レコードは早めに抽出する事を推奨します。利用するデータベースに合わせて、適切にデータを絞るとよろしいかと思います。
+以下のクエリでは、カラムとレコードを絞るタイミングが遅いケースを記載しております。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;WITH&lt;/span&gt; anti_patturn &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;table&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ col1&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ col2
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt;
+ anti_patturn
+&lt;span class=&quot;token keyword&quot;&gt;WHERE&lt;/span&gt;
+ col3 &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;target_value&apos;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt; 
+&lt;span class=&quot;token comment&quot;&gt;/*------------------------------*/&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;WITH&lt;/span&gt; GOOD &lt;span class=&quot;token keyword&quot;&gt;AS&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ col1&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+ col2
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; dataset&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token keyword&quot;&gt;table&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;WHERE&lt;/span&gt;
+ col3 &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;target_value&apos;&lt;/span&gt;
+&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ &lt;span class=&quot;token operator&quot;&gt;*&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; GOOD
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;ADD(), SUB()に負数&lt;/h2&gt;
+&lt;p&gt;一見解釈に困るため、アンチパターンとしています。ADD()とSUB()を正しく使い分けるとよろしいと思います。どうしてもどちらかに絞りたい場合は、ADD()のみに統一するとよろしいかと思います。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+ SUB&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+ &lt;span class=&quot;token keyword&quot;&gt;ADD&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;
+ &lt;span class=&quot;token keyword&quot;&gt;ADD&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+ SUB&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;RIGHT OUTER JOIN&lt;/h2&gt;
+&lt;p&gt;個人的アンチパターンです。SQLの予約語が英語なので、左から右に書いてある方がイメージしやすくて読み易いです。&lt;code class=&quot;language-text&quot;&gt;LEFT OUTER JOIN&lt;/code&gt;のみにすることを推奨します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;RIGHT&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OUTER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt; outer_table
+  &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt;
+    outer_table&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; base_table&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;LEFT&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;OUTER&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;JOIN&lt;/span&gt; outer_table
+  &lt;span class=&quot;token keyword&quot;&gt;ON&lt;/span&gt;
+    base_table&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; outer_table&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;foreign_key &lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;&lt;code class=&quot;language-text&quot;&gt;DISTINCT&lt;/code&gt;をとりあえず使う&lt;/h2&gt;
+&lt;p&gt;DISTINCTの回数はSQLのパフォーマンスに直結するため、勢いで使うことは推奨できません。そもそもDISTINCTが何故必要なのか、データ重複が発生する原因を特定し、対処方法を検討することが重要だと考えております。また、全てのカラムを指定したGROUP BYはDISTINCTよりもパフォーマンスが高いため、可読性とパフォーマンスを天秤にかけて、検討するとよろしいかと思います。
+GROUP BYを利用する際には、コメントを入れると、可読性が高まるため、おすすめします。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;DISTINCT&lt;/span&gt;
+  a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  d
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; sample_table
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;
+&lt;span class=&quot;token comment&quot;&gt;-- パフォーマンスを優先し、DISTINCTではなく、GROUP BYを利用&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+  a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  d
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; sample_table
+&lt;span class=&quot;token keyword&quot;&gt;GROUP&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;BY&lt;/span&gt; a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; d
+&lt;span class=&quot;token punctuation&quot;&gt;;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;TIMEZONEを指定しない&lt;code class=&quot;language-text&quot;&gt;CURRENT_DATE()&lt;/code&gt;&lt;/h2&gt;
+&lt;p&gt;TIMEZONEの指定が不要な場合は、読み飛ばして良い、アンチパターンになります。
+日本の場合、+9:00のため、TIMEZONEを指定しない場合、0時〜9時と9時〜24時で得られる日付が変わります。
+CURRENT_DATETIME()も同様です。バグなので指定しましょう。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;CURRENT_DATE&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+CURRENT_DATETIME&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- アンチパターン&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;CURRENT_DATE&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;Asia/Tokyo&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;
+CURRENT_DATETIME&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;Asia/Tokyo&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token comment&quot;&gt;-- GOOD&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;コメントを使用しない&lt;/h2&gt;
+&lt;p&gt;コメントを書くことを推奨します。特に独特のビジネスロジックが入った際には、コメントでビジネスロジックに関する補足や資料へのリンクを入れるだけで、SQLの読みやすさが違うと思います。&lt;/p&gt;
+&lt;h1&gt;おまけ&lt;/h1&gt;
+&lt;p&gt;BQの小ネタですが、FROM句の前にカンマが入っていてもエラーを吐かずに通してくれます。
+これはBQのフォーマッター的に、カラム名の直後にカンマが入るようになっていますが、開発時に末端のカラムをコメントアウト等をしてもカンマの調整が不要となるため開発体験は素晴らしいです。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;sql&quot;&gt;&lt;pre class=&quot;language-sql&quot;&gt;&lt;code class=&quot;language-sql&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# 以下でもSQLが通ります。&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;SELECT&lt;/span&gt;
+  a&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  b&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  c&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;token comment&quot;&gt;-- d&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; sample_table&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</content:encoded></item><item><title><![CDATA[papermillを使用してipynbでwebサーバーを構築する]]></title><description><![CDATA[ipynbファイル上でwebサーバーを構築する方法を共有いたします。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00005</link><guid isPermaLink="false">https://www.linkedin.com/blog/00005papermillを使用してipynbでwebサーバーを構築する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Sun, 31 May 2020 00:00:00 GMT</pubDate><content:encoded>&lt;h1&gt;TL;DR&lt;/h1&gt;
+&lt;p&gt;機械学習のシステム開発について、jupyter上でモデルを開発した後、運用時にpythonファイルに書き換えるケースが見受けられます。
+今回は書き換えなくても運用できるように、ipynbファイル上でwebサーバーを構築する方法を共有いたします。&lt;br&gt;
+ipynbファイルの実行には、papermillをというライブラリを使用します。&lt;br&gt;
+&lt;a href=&quot;https://papermill.readthedocs.io/en/latest/&quot;&gt;https://papermill.readthedocs.io/en/latest/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;また、本ドキュメントに記載している各コードは全て下記リポジトリに格納しております。&lt;br&gt;
+&lt;a href=&quot;https://github.com/uniocto/prediction-server-with-nb&quot;&gt;https://github.com/uniocto/prediction-server-with-nb&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;ステップ&lt;/h1&gt;
+&lt;ol&gt;
+&lt;li&gt;テスト用のモデル構築&lt;/li&gt;
+&lt;li&gt;予測用notebookの作成&lt;/li&gt;
+&lt;li&gt;サーバー用のdocker imageの作成&lt;/li&gt;
+&lt;li&gt;動作確認&lt;/li&gt;
+&lt;li&gt;所感&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1&gt;最終的なファイル構成&lt;/h1&gt;
+&lt;p&gt;最終的には下記ファイル構成を作成します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt; ./  
+ ├── model  # ステップ1で作成
+ ├── requirements.txt  # ステップ2で作成
+ ├── main.ipynb  # ステップ2で作成
+ ├── docker-compose.yml  # ステップ3で作成
+ └── dockerfile  # ステップ3で作成&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;1. テスト用のモデル構築&lt;/h1&gt;
+&lt;p&gt;irisデータセットを使用して、簡易的なSVCモデルを作成します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; pickle
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; numpy &lt;span class=&quot;token keyword&quot;&gt;as&lt;/span&gt; np
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; sklearn&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;svm &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; SVC
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; sklearn&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;datasets &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; load_iris
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; sklearn&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;model_selection &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; train_test_split
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; sklearn&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;metrics &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; accuracy_score
+
+iris_dataset &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; load_iris&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+x &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; iris_dataset&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;data&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+y &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; iris_dataset&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;target&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+
+
+x_train&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; x_test&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; y_train&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; y_test &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; train_test_split&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    x&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    y&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    test_size &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0.2&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    train_size &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0.8&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    shuffle &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token boolean&quot;&gt;True&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+
+clf &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; SVC&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;gamma&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;scale&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+clf&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;fit&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;x_train&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; y_train&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+y_pred &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; clf&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;x_test&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;accuracy_score&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;y_test&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; y_pred&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+filename &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;model&apos;&lt;/span&gt;
+pickle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;dump&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;clf&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;filename&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;wb&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+clf &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; pickle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;load&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;filename&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;rb&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+y_pred &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; clf&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;x_test&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;accuracy_score&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;y_test&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; y_pred&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;2. 予測用notebookの作成&lt;/h1&gt;
+&lt;p&gt;papermillから呼び出すrequirements.txtファイルとipynbファイルを作成します。pythonのサーバーといえば、
+WSGIとASGIがあるため、参考として両方を用意しました。&lt;br&gt;
+なお、今回はWSGIはwsgirefを、ASGIはuvicornを使用したものを以下に記載しておりますので、お好きな方を利用されるとよろしいかと思います。&lt;/p&gt;
+&lt;h2&gt;WSGIの場合&lt;/h2&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;# requirements.txt
+sklearn
+numpy
+papermill&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# main.ipynb&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; json
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; pickle
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; numpy &lt;span class=&quot;token keyword&quot;&gt;as&lt;/span&gt; np
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; datetime &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; datetime
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; wsgiref&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;util &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; setup_testing_defaults
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; wsgiref&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;simple_server &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; make_server
+
+PORT &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;8000&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;ModelPredictor&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        self&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;model &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; pickle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;load&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;model&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;rb&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; json&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;dumps&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;val&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; self&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;prep&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;cls &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; NumpyEncoder&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;encode&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;    
+
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;prep&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;   data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;sepal length (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;sepal width (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;petal length (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    data&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;petal width (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;predict&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; self&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;model&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;NumpyEncoder&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;JSONEncoder&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;isinstance&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;integer&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;isinstance&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;floating&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;isinstance&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ndarray&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; obj&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;tolist&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;NumpyEncoder&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; self&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;default&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+prd_controller &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; ModelPredictor&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+prd_controller&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;sepal length (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token string&quot;&gt;&quot;sepal width (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token string&quot;&gt;&quot;petal length (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token string&quot;&gt;&quot;petal width (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;simple_app&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;environ&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; start_response&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    setup_testing_defaults&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;environ&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    
+    wsgi_input &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; environ&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;wsgi.input&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    content_length &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;environ&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;CONTENT_LENGTH&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    data &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; json&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;loads&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;wsgi_input&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;read&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;content_length&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;wsgi_input&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+    status &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;200 OK&apos;&lt;/span&gt;
+    headers &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;Content-type&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;text/plain; charset=utf-8&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    ret &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;prd_controller&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;main&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;data&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    start_response&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;status&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; headers&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; ret
+
+&lt;span class=&quot;token keyword&quot;&gt;with&lt;/span&gt; make_server&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;0.0.0.0&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; PORT&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; simple_app&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;as&lt;/span&gt; httpd&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string-interpolation&quot;&gt;&lt;span class=&quot;token string&quot;&gt;f&quot;Serving on port &lt;/span&gt;&lt;span class=&quot;token interpolation&quot;&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;PORT&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;...&quot;&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    httpd&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;serve_forever&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;ASGIの場合&lt;/h2&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;# requirements.txt
+sklearn
+numpy
+papermill
+uvicorn&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;python&quot;&gt;&lt;pre class=&quot;language-python&quot;&gt;&lt;code class=&quot;language-python&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# main.ipynb&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; json
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; pickle
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; uvicorn
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; numpy &lt;span class=&quot;token keyword&quot;&gt;as&lt;/span&gt; np
+&lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; nest_asyncio
+&lt;span class=&quot;token keyword&quot;&gt;from&lt;/span&gt; datetime &lt;span class=&quot;token keyword&quot;&gt;import&lt;/span&gt; datetime
+
+nest_asyncio&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;apply&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+PORT &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;8000&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;ModelPredictor&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;__init__&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        self&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;model &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; pickle&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;load&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token builtin&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;model&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;rb&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;predict&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;body&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        rt_val &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; self&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;model&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;
+                    body&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;sepal length (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    body&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;sepal width (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    body&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;petal length (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+                    body&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;petal width (cm)&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; json&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;dumps&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;val&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; rt_val&lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; cls&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;NumpyEncoder&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;encode&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;token class-name&quot;&gt;NumpyEncoder&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;json&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;JSONEncoder&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;default&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;self&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;isinstance&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;integer&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;isinstance&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;floating&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;elif&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;isinstance&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; np&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;ndarray&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; obj&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;tolist&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;token keyword&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;token builtin&quot;&gt;super&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;NumpyEncoder&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; self&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;default&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;obj&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+prd_controller &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; ModelPredictor&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+prd_controller&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;sepal length (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token string&quot;&gt;&quot;sepal width (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token string&quot;&gt;&quot;petal length (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token string&quot;&gt;&quot;petal width (cm)&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;read_body&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;receive&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    body &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;b&apos;&apos;&lt;/span&gt;
+    more_body &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token boolean&quot;&gt;True&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;while&lt;/span&gt; more_body&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        message &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; receive&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        body &lt;span class=&quot;token operator&quot;&gt;+=&lt;/span&gt; message&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;body&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;b&apos;&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+        more_body &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; message&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;get&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&apos;more_body&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token boolean&quot;&gt;False&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;token keyword&quot;&gt;return&lt;/span&gt; json&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;loads&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;body&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;token keyword&quot;&gt;async&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;token function&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;scope&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; receive&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; send&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    body &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; read_body&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;receive&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    ret &lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt; prd_controller&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;predict&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;body&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; send&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&apos;type&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;http.response.start&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&apos;status&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;200&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&apos;headers&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;
+            &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;b&apos;content-type&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;b&apos;text/plain&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;token keyword&quot;&gt;await&lt;/span&gt; send&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&apos;type&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;http.response.body&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+        &lt;span class=&quot;token string&quot;&gt;&apos;body&apos;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; ret&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;
+
+uvicorn&lt;span class=&quot;token punctuation&quot;&gt;.&lt;/span&gt;run&lt;span class=&quot;token punctuation&quot;&gt;(&lt;/span&gt;app&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; host&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;0.0.0.0&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; port&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;PORT&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt; log_level&lt;span class=&quot;token operator&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;info&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;3. サーバー用のdocker imageの作成&lt;/h1&gt;
+&lt;p&gt;予測webサーバーのdocker imageを作成するため、dockerfileを記述します。&lt;br&gt;
+&lt;code class=&quot;language-text&quot;&gt;papermill main.ipynb out.ipynb&lt;/code&gt;でmain.ipynbファイルを実行した結果がout.ipynbとして出力されます。&lt;br&gt;
+今回はコンテナの実行にdocker-composeを使用するため、docker-compose.ymlも作成します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;dockerfile&quot;&gt;&lt;pre class=&quot;language-dockerfile&quot;&gt;&lt;code class=&quot;language-dockerfile&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# dockerfile&lt;/span&gt;
+&lt;span class=&quot;token keyword&quot;&gt;FROM&lt;/span&gt; jupyter/datascience&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;notebook&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;latest
+&lt;span class=&quot;token keyword&quot;&gt;WORKDIR&lt;/span&gt; /home/jovyan
+&lt;span class=&quot;token keyword&quot;&gt;COPY&lt;/span&gt; model ./
+&lt;span class=&quot;token keyword&quot;&gt;COPY&lt;/span&gt; main.ipynb ./
+&lt;span class=&quot;token keyword&quot;&gt;COPY&lt;/span&gt; requirements.txt ./
+&lt;span class=&quot;token keyword&quot;&gt;RUN&lt;/span&gt; pip install &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;r requirements.txt
+&lt;span class=&quot;token keyword&quot;&gt;ENTRYPOINT&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;papermill&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;main.ipynb&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;out.ipynb&quot;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt; &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;yaml&quot;&gt;&lt;pre class=&quot;language-yaml&quot;&gt;&lt;code class=&quot;language-yaml&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# docker-compose.yml&lt;/span&gt;
+&lt;span class=&quot;token key atrule&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;3&apos;&lt;/span&gt;
+&lt;span class=&quot;token key atrule&quot;&gt;services&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token key atrule&quot;&gt;notebook_server&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;build&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; .
+    &lt;span class=&quot;token key atrule&quot;&gt;container_name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; notebook_server
+    &lt;span class=&quot;token key atrule&quot;&gt;hostname&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; notebook_server
+    &lt;span class=&quot;token key atrule&quot;&gt;restart&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; always
+    &lt;span class=&quot;token key atrule&quot;&gt;ports&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; 
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; 8000&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;token number&quot;&gt;8000&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;4. 動作確認&lt;/h1&gt;
+&lt;p&gt;下記コマンドを実行してビルド後、curlにて動作を確認します。{&quot;val&quot;: INTEGER}のフォーマットでデータが返ってくれば成功です。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;$ docker-compose up -d
+$ &lt;span class=&quot;token function&quot;&gt;curl&lt;/span&gt; -X POST -H &lt;span class=&quot;token string&quot;&gt;&quot;Content-Type: application/json&quot;&lt;/span&gt; -d &lt;span class=&quot;token string&quot;&gt;&apos;{  &quot;sepal length (cm)&quot;: 1,  &quot;sepal width (cm)&quot;: 1,  &quot;petal length (cm)&quot;: 1,  &quot;petal width (cm)&quot;:1}&apos;&lt;/span&gt; localhost:8000
+&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token string&quot;&gt;&quot;val&quot;&lt;/span&gt;&lt;span class=&quot;token builtin class-name&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token number&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;所感&lt;/h1&gt;
+&lt;p&gt;紹介したは良いものの、以下の点からあまり推奨できません。  &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;papermillはバッチ的な用途向きのツールで、webサーバー向きではない  &lt;/li&gt;
+&lt;li&gt;imageのサイズも今回のは3.7GBほどになる&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;リソースが潤沢かつデータサイエンティストの生産性を最大にしたい場合、候補に上がるかもしれません。&lt;/p&gt;</content:encoded></item><item><title><![CDATA[映画のポスターを自動生成したい〜データ収集編〜]]></title><description><![CDATA[映画のタイトルから、映画のポスターっぽい画像を生成するものを作ることを目指します。今回は設計とデータ準備が範囲となります。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00004</link><guid isPermaLink="false">https://www.linkedin.com/blog/00004映画のポスターを自動生成したい〜データ収集編〜</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Tue, 31 Mar 2020 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;経緯&lt;/h2&gt;
+&lt;p&gt;映画のポスターってかっこいいな・・・作りたいなぁ・・・&lt;br&gt;
+そんな時、私は画像ジェネレーターであるGANに出会いました。&lt;/p&gt;
+&lt;h2&gt;注意書き&lt;/h2&gt;
+&lt;p&gt;私はデータサイエンティストでもなければ、機械学習にも詳しくないです。&lt;br&gt;
+そのため、誤解を招く表現がございましたら、ご指摘くださると嬉しいです。&lt;/p&gt;
+&lt;h2&gt;アジェンダ&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;映GANを作るにあたって&lt;/li&gt;
+&lt;li&gt;データの準備&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;映GANを作るにあたって&lt;/h2&gt;
+&lt;p&gt;それっぽいポスターを作るためには、映画のタイトルと画像が紐づいたデータが重要になります。&lt;br&gt;
+収集対象となる映画のタイトルは以下から取得することとしました。&lt;br&gt;
+&lt;a href=&quot;https://ja.wikipedia.org/wiki/%E5%B9%B4%E5%BA%A6%E5%88%A5%E6%98%A0%E7%94%BB%E8%88%88%E8%A1%8C%E6%88%90%E7%B8%BE&quot;&gt;https://ja.wikipedia.org/wiki/%E5%B9%B4%E5%BA%A6%E5%88%A5%E6%98%A0%E7%94%BB%E8%88%88%E8%A1%8C%E6%88%90%E7%B8%BE&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;データ準備&lt;/h2&gt;
+&lt;p&gt;執筆時点で、以前使っていたgoogle-images-downloadでは、ダウンロードできなくなりました。&lt;br&gt;
+その為、yahooから画像を収集します。スクリプトは以下です。&lt;br&gt;
+※ 作成にあたり、下記サイトを参考にしました。&lt;br&gt;
+&lt;a href=&quot;https://qiita.com/ishiwara51/items/3979fbc1c69b4f8ee2d3&quot;&gt;https://qiita.com/ishiwara51/items/3979fbc1c69b4f8ee2d3&lt;/a&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;import os
+import sys
+import traceback
+from mimetypes import guess_extension
+from time import time, sleep
+from urllib.request import urlopen, Request
+from urllib.parse import quote
+from bs4 import BeautifulSoup
+
+MY_EMAIL_ADDR = &amp;#39;&amp;#39;
+
+class Fetcher:
+    def __init__(self, ua=&amp;#39;&amp;#39;):
+        self.ua = ua
+
+    def fetch_img_direct(self, url):
+        req = Request(url, headers={&amp;#39;User-Agent&amp;#39;: self.ua})
+        try:
+            with urlopen(req, timeout=3) as p:
+                page_b_content = p.read()
+                structured_page = BeautifulSoup(page_b_content.decode(&amp;#39;UTF-8&amp;#39;), &amp;#39;html.parser&amp;#39;)
+                img_link_elems = structured_page.find_all(&amp;#39;img&amp;#39;)
+                img_urls = [e.get(&amp;#39;src&amp;#39;) for e in img_link_elems if e.get(&amp;#39;src&amp;#39;).startswith(&amp;#39;http&amp;#39;)]
+                img_urls = list(set(img_urls)) #なぜset化しているのかは不明
+        except:
+            sys.stderr.write(&amp;#39;Error in fetching {}\n&amp;#39;.format(url))
+            sys.stderr.write(traceback.format_exc())
+            return None, None
+
+        img_b_content = []
+        mime = []
+        for i, img_url in enumerate(img_urls):
+            req1 = Request(img_url, headers={&amp;#39;User-Agent&amp;#39;: self.ua})
+            try:
+                with urlopen(req1, timeout=3) as p:
+                    img_b_content.append(p.read())
+                    mime.append(p.getheader(&amp;#39;Content-Type&amp;#39;))
+            except:
+                sys.stderr.write(&amp;#39;Error in fetching {}\n&amp;#39;.format(img_url))
+                sys.stderr.write(traceback.format_exc())
+                continue
+
+        return img_b_content, mime
+
+fetcher = Fetcher(MY_EMAIL_ADDR)
+
+
+def url_brancher(word):
+    constant = &amp;quot;https://search.yahoo.co.jp/image/search?p={}&amp;amp;n=5&amp;quot;.format(quote(word+&amp;quot; 映画&amp;quot;))
+    urllist = [constant]
+    return urllist
+
+
+def main(word):
+    data_dir = &amp;#39;data_folder/&amp;#39;+word
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    yahoo_url_list = url_brancher(word)
+
+    for i, yahoo_url in enumerate(yahoo_url_list):
+        sleep(0.1)
+        img, mime = fetcher.fetch_img_direct(yahoo_url)
+        if not mime or not img:
+            print(&amp;#39;Error in fetching {}\n&amp;#39;.format(yahoo_url))
+            continue
+
+        for j, img_url in enumerate(img):
+            ext = guess_extension(mime[j].split(&amp;#39;;&amp;#39;)[0])
+            if ext in (&amp;#39;.jpe&amp;#39;, &amp;#39;.jpeg&amp;#39;):
+                ext = &amp;#39;.jpg&amp;#39;
+                result_file = os.path.join(data_dir, str(i) + str(j)+ ext)
+                with open(result_file, mode=&amp;#39;wb&amp;#39;) as f:
+                    f.write(img_url)
+                print(&amp;#39;fetched&amp;#39;, str(i) + str(j) + ext)
+            if not ext:
+                print(&amp;#39;Error in fetching {}\n&amp;#39;.format(img_url))
+                continue&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;感想&lt;/h2&gt;
+&lt;p&gt;googleのスクリプトが使えなくなったのは、中々ショックでした。。。2019/12時点では動いてたのに・・・  &lt;/p&gt;</content:encoded></item><item><title><![CDATA[エフェメラルなブログ環境（gatsby）を構築する]]></title><description><![CDATA[Dockerコンテナ上に、gastbyを利用したブログ開発環境を構築します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00001</link><guid isPermaLink="false">https://www.linkedin.com/blog/00001エフェメラルなブログ環境（gatsby）を構築する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Mon, 24 Feb 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;dockerコンテナ上に、ブログの実行環境を構築します。&lt;/p&gt;
+&lt;h2&gt;環境&lt;/h2&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;ProductName:  Mac OS X  
+ProductVersion:  10.15.2  
+docker-compose version: 1.24.1  &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;ゴール&lt;/h2&gt;
+&lt;p&gt;ブログを開発する環境を構築すること
+フォルダ構造は以下。  &lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;./  
+└── node  
+     ├── dockerfile  // gatsbyのdocker image作成
+     ├── docker-compose.yaml  // volumeのマウント用
+     └── blog_name  // 自由なブログ名を入力&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;アジェンダ&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Docker imageの取得&lt;/li&gt;
+&lt;li&gt;gatsbyのDockerコンテナを作成&lt;/li&gt;
+&lt;li&gt;gatsbyコンテナの実行&lt;/li&gt;
+&lt;li&gt;gatsbyスターターの選択&lt;/li&gt;
+&lt;li&gt;スターターの動作を確認&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Docker imageの取得&lt;/h2&gt;
+&lt;p&gt;まずは、gatsbyの実行環境を構築するため、Node.jsのイメージを取得します。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;&amp;gt; docker pull node
+&amp;gt; docker images&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;gatsbyのDockerコンテナを作成&lt;/h2&gt;
+&lt;p&gt;Docker imageを作成します。まずは以下のようにdockerfileとdocker-compose.yamlを記述。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;~/node/dockerfile 
+FROM node:latest
+RUN npm install -g gatsby-cli&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;~/node/docker-compose.yaml  
+version: &amp;quot;2&amp;quot;
+services:
+  gatsby:
+    build:
+      context: .
+    container_name: gatsby
+    volumes:
+      - &amp;quot;~/node:/node/&amp;quot;
+    working_dir: /node
+    expose: 
+      - 7000&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;gatsbyコンテナの実行&lt;/h2&gt;
+&lt;p&gt;下記コマンドを実行し、gatsbyコンテナを作成し、attachする。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;&amp;gt;docker-compose up
+&amp;gt;docker-compose run gatsby bash  &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;gatsbyスターターの選択&lt;/h2&gt;
+&lt;p&gt;下記リンクより、ブログを作成する際のスターターテンプレートを選択する。&lt;br&gt;
+今回はスタンダードな「gatsby-starter-blog」を利用する前提で使用します。&lt;br&gt;
+&lt;a href=&quot;https://www.gatsbyjs.org/starters/?v=2&quot;&gt;https://www.gatsbyjs.org/starters/?v=2&lt;/a&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;gatsby new gatsby-starter-blog https://github.com/gatsbyjs/gatsby-starter-blog&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;スターターの動作を確認&lt;/h2&gt;
+&lt;p&gt;gatsby developコマンドにて、動作確認する。Hostから、dockerコンテナ内のページを確認できるように、ホストを0.0.0.0を指定する。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;gatsby develop --host=0.0.0.0&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;下記リンクにアクセスし、動作することを確認する。  &lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;http://localhost:8000/&quot;&gt;http://localhost:8000/&lt;/a&gt;  &lt;/p&gt;
+&lt;p&gt;contentフォルダ内にあるフォルダにあるindex.mdファイルを修正し、ページに反映されることを確認する。&lt;/p&gt;
+&lt;h2&gt;雑記&lt;/h2&gt;
+&lt;p&gt;ブログを作りたいと考えていて、静的WebサイトジェネレーターであるGatsbyにたどり着きました。  &lt;/p&gt;</content:encoded></item><item><title><![CDATA[3,000円ほどの勉強代でGCPの資格二種類に合格しました]]></title><description><![CDATA[資格を取得するにあたって、勉強した内容を共有します。記事を読んだ方の資格取得の助けになればと思っております。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00003</link><guid isPermaLink="false">https://www.linkedin.com/blog/000033,000円ほどの勉強代でGCPの資格二種類に合格しました</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Sun, 23 Feb 2020 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;本記事を書く経緯&lt;/h2&gt;
+&lt;p&gt;出費にピンを止めてGCPの「Professional Cloud Architect」と「Professional Data Engineer」を受け、受かったのでその勉強法を共有します。
+もちろん、公式の有償講座を受けることは価値があると思いますので、
+予算に合わせた準備をするとよろしいかと。  &lt;/p&gt;
+&lt;h2&gt;合格した資格&lt;/h2&gt;
+&lt;p&gt;以下の資格に受かりました。（各$200）&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Professional Cloud Architect&lt;br&gt;
+&lt;a href=&quot;https://cloud.google.com/certification/cloud-architect?hl=ja&quot;&gt;https://cloud.google.com/certification/cloud-architect?hl=ja&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Professional Data Engineer&lt;br&gt;
+&lt;a href=&quot;https://cloud.google.com/certification/data-engineer?hl=ja&quot;&gt;https://cloud.google.com/certification/data-engineer?hl=ja&lt;/a&gt;  &lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;勉強開始前のレベル&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;仕事でBigQuery、GCSを1500時間ほど運用/開発を経験&lt;/li&gt;
+&lt;li&gt;個人的にCompute Engine, Cloud Build, Cloud Function, Cloud Scheduler、Pub/Subを300時間ほど開発/運用を経験&lt;/li&gt;
+&lt;li&gt;k8sの知識はyamlを0から書けないレベル&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;資格取得のモチベーション&lt;/h2&gt;
+&lt;p&gt;「自分の市場価値を明確化したい」、「GCPのクールなプライズが欲しい」、「 Google Cloud Nextの資格取得者サロンに入ってみたい」の3つでした。
+市場価値については、以下の記事や求人を見て、モチベーションが高めました。&lt;br&gt;
+&lt;a href=&quot;https://www.globalknowledge.com/us-en/resources/resource-library/articles/top-paying-certifications/&quot;&gt;https://www.globalknowledge.com/us-en/resources/resource-library/articles/top-paying-certifications/&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;コスト&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;出費 本代 3,000円&lt;br&gt;
+Google Cloud Platform エンタープライズ設計ガイド&lt;br&gt;
+&lt;a href=&quot;https://www.amazon.co.jp/dp/4822257908/ref=cm_sw_em_r_mt_dp_U_fc5uEbJ04KMDB&quot;&gt;https://www.amazon.co.jp/dp/4822257908/ref=cm_sw_em_r_mt_dp_U_fc5uEbJ04KMDB&lt;/a&gt;&lt;br&gt;
+GCPの全体像が把握できたため、満足度の高い出費でした。&lt;br&gt;
+ただ、2018年の本であるため、最新のGCPサービスは記載されておりません。&lt;br&gt;
+もちろん試験範囲に最新のサービスも含まれるため、公式リファレンスで勉強する必要があります。  &lt;/li&gt;
+&lt;li&gt;勉強時間 合計100時間&lt;br&gt;
+1試験あたり 50時間 = 2時間/日 * 25日&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;勉強対象&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;購入した上記本&lt;/li&gt;
+&lt;li&gt;quiklabsのハンズオンクエスト（見るだけなら無料）&lt;br&gt;
+&lt;a href=&quot;https://google.qwiklabs.com/&quot;&gt;https://google.qwiklabs.com/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;公式ドキュメント&lt;br&gt;
+&lt;a href=&quot;https://cloud.google.com/docs?hl=ja&quot;&gt;https://cloud.google.com/docs?hl=ja&lt;/a&gt;  &lt;/li&gt;
+&lt;li&gt;公式ソリューション一覧&lt;br&gt;
+&lt;a href=&quot;https://cloud.google.com/solutions?hl=ja&quot;&gt;https://cloud.google.com/solutions?hl=ja&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;資格毎の模擬試験&lt;/li&gt;
+&lt;li&gt;GCP公式のクラウドサービス比較（他のクラウドサービスにも詳しい方向け）&lt;br&gt;
+&lt;a href=&quot;https://cloud.google.com/docs/compare?hl=ja&quot;&gt;https://cloud.google.com/docs/compare?hl=ja&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;行った勉強法&lt;/h2&gt;
+&lt;p&gt;勉強法は以下を行いました。私は手を動かさないと記憶できないので、得た知識をアウトプットすることを意識しました。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;各試験ガイドの項目と勉強対象で得られた知識のリレーションをドキュメント化&lt;/li&gt;
+&lt;li&gt;課題とサービスの関係性を書く。&lt;/li&gt;
+&lt;li&gt;全サービスについて、quiklabと公式リファレンスを読みながら、GCPにデプロイ&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;個人的アドバイス&lt;/h2&gt;
+&lt;p&gt;最後に所感ですが、以下の点を意識して試験に取り組めば、合格できると思います。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;問題文を正しく読むこと&lt;/li&gt;
+&lt;li&gt;試験ガイドのスコープと知識が紐付けられていること&lt;/li&gt;
+&lt;li&gt;ソリューション毎のコストを意識すること&lt;/li&gt;
+&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[エフェメラルなGoの実行環境を構築する]]></title><description><![CDATA[Docker上に、goの実行環境を作ります。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00002</link><guid isPermaLink="false">https://www.linkedin.com/blog/00002エフェメラルなGoの実行環境を構築する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Sun, 26 Jan 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;dockerコンテナ上に、goの実行環境を構築します。&lt;/p&gt;
+&lt;h2&gt;環境&lt;/h2&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;ProductName:  Mac OS X  
+ProductVersion:  10.15.2  
+docker-compose version: 1.24.1  &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;ゴール&lt;/h2&gt;
+&lt;p&gt;goを実行できる開発環境を構築すること
+フォルダ構造は以下。  &lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;./  
+└── go  
+     ├── docker-compose.yaml  
+     └── src  // 実行対象のアプリはこの直下に置く  
+           └── hello_world  
+                  └── main.go&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h2&gt;工程&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;下記コマンドにて、goのdocker imageを取得する&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;&amp;gt;docker pull golang
+&amp;gt;docker images&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;go開発用のディレクトリを用意する。このsrc直下でgoのスクリプトを開発を進める。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;&amp;gt;mkdir ~/go/src&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;下記のようにdockerfileを記述する&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;~/go/docker-compose.yaml  
+version: &amp;quot;2&amp;quot;  
+services:  
+  go:  
+    image: golang  
+    container_name: go  
+    volumes:  
+      - &amp;quot;~/go/src/:/go/src/&amp;quot;  
+    working_dir: /go/src&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Hello worldを出力するmain.goを作成する。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;~/go/HelloWorld/main.go  
+package main  
+import (&amp;quot;fmt&amp;quot;)  
+func main() {
+	fmt.Printf(&amp;quot;Hello World!\n&amp;quot;)  
+}&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;~/goにて、docker-composeの起動し、コンテナの内部に入る。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;&amp;gt;docker-compose up
+&amp;gt;docker-compose run go bash  
+&amp;gt;go#ls -l  
+root root  hello_world  &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;下記コマンドを実行し、Hello Worldが出力されることを確認する。&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;go#go run HelloWorld/main.go
+Hello World!  &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;雑記&lt;/h2&gt;
+&lt;p&gt;バックエンドで根強い人気があるgoを学びたいと思い、開発環境を整えました。&lt;br&gt;
+とはいえ、直近仕事で使うことはなさそうなので、「Go言語で作るインタプリタ」の写経専用環境になると思います。&lt;/p&gt;</content:encoded></item></channel></rss>
