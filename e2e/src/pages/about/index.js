@@ -58,12 +58,9 @@ class About extends React.Component {
           </div>
           <div className={style.content}>
             <h1>浮山 颯</h1>
-            <p>技術に振り回されているエンジニアです。</p>
+            <p>技術に振り回されている開発者です。エンジニアになりたい。</p>
             <br />
             <h1>History</h1>
-
-            {/*  */}
-
 
             <VerticalTimeline>
               <VerticalTimelineElement
@@ -158,24 +155,15 @@ class About extends React.Component {
                 icon={<StarIcon />}
               />
             </VerticalTimeline>
-
-
-            {/*  */}
             <h1>Outputs</h1>
             <h2><a href="https://play.google.com/store/apps/details?id=com.soyai">本ブログ</a></h2>
-            <p>静的サイトジェネレーターのgatsby.jsとホスティングサービスのNetlifyを利用してます。</p>
+            <p>静的サイトジェネレーターのgatsby.jsとgithub pagesを利用してます。</p>
             <h2><a href="https://play.google.com/store/apps/details?id=com.soyai">SOYAI</a></h2>
             <p>Flutterで作成したandroidアプリです。ご飯屋さんで醤油かソースかわからなかった時、セカンドオピニオンとして利用されることを想定しております。精度はかなり低いです。</p>
             <h1>Skills</h1>
             <ImageList edges={skillIcons.edges} />
             <h1>Tools</h1>
             <ImageList edges={toolIcons.edges} />
-            {/* <h1>Cerifications</h1>
-            <li>2019/04 Azure Administrator Associate</li>
-            <li>2019/11 基本情報技術者試験</li>
-            <li>2020/02 Google Cloud Certified Professional Cloud Architect</li>
-            <li>2020/02 Google Cloud Certified Professional Data Engineer</li>
-            <li>2020/03 Google Cloud Certified Professional Cloud Developer</li> */}
           </div>
         </div>
       </Layout>
