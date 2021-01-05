@@ -156,7 +156,9 @@ class About extends React.Component {
               />
             </VerticalTimeline>
             <h1>Outputs</h1>
-            <h2><a href="https://play.google.com/store/apps/details?id=com.soyai">本ブログ</a></h2>
+            <h2><a href="https://play.google.com/store/apps/details?id=com.twinkle_toilet">Twinkle toilet</a></h2>
+            <p>トイレの標識を見つけるアプリです。発見した際に、キラキラとひかるエフェクトとナビゲーターが声で教えてくれます。</p>
+            <h2><a href="https://uniocto.github.io/">本ブログ</a></h2>
             <p>静的サイトジェネレーターのgatsby.jsとgithub pagesを利用してます。</p>
             <h2><a href="https://play.google.com/store/apps/details?id=com.soyai">SOYAI</a></h2>
             <p>Flutterで作成したandroidアプリです。ご飯屋さんで醤油かソースかわからなかった時、セカンドオピニオンとして利用されることを想定しております。精度はかなり低いです。</p>
