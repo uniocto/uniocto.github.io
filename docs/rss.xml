@@ -1,7 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Luigi Colella RSS Feed]]></title><description><![CDATA[エンジニア的性質を持ったデベロッパーを目指すブログです。]]></description><link>https://www.linkedin.com</link><generator>GatsbyJS</generator><lastBuildDate>Tue, 05 Jan 2021 23:46:26 GMT</lastBuildDate><item><title><![CDATA[トイレを教えてくれるアプリを開発する]]></title><description><![CDATA[トイレを教えてくれるアプリを開発します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00009</link><guid isPermaLink="false">https://www.linkedin.com/blog/00009トイレを教えてくれるアプリを開発する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Mon, 21 Dec 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;この記事は「&lt;a href=&quot;https://qiita.com/advent-calendar/2020/kuso-app2&quot;&gt;クソアプリ2 Advent Calendar 2020&lt;/a&gt;」の20日目の記事です。&lt;/p&gt;
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Luigi Colella RSS Feed]]></title><description><![CDATA[エンジニア的性質を持ったデベロッパーを目指すブログです。]]></description><link>https://www.linkedin.com</link><generator>GatsbyJS</generator><lastBuildDate>Fri, 15 Jan 2021 14:45:40 GMT</lastBuildDate><item><title><![CDATA[トイレを教えてくれるアプリを開発する]]></title><description><![CDATA[トイレを教えてくれるアプリを開発します。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00009</link><guid isPermaLink="false">https://www.linkedin.com/blog/00009トイレを教えてくれるアプリを開発する</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Mon, 21 Dec 2020 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;この記事は「&lt;a href=&quot;https://qiita.com/advent-calendar/2020/kuso-app2&quot;&gt;クソアプリ2 Advent Calendar 2020&lt;/a&gt;」の20日目の記事です。&lt;/p&gt;
 &lt;h1&gt;TL;DR&lt;/h1&gt;
 &lt;p&gt;トイレが見つからずに困った経験、ありませんか。
-そんなとき、助けてくれる味方が欲しいと考え、アプリを作ることにしました。&lt;/p&gt;
+そんなとき、助けてくれる味方が欲しいと考え、アプリを作ることにしました。&lt;br&gt;
+android版は以下からダウンロード可能です。
+&lt;a href=&quot;https://play.google.com/store/apps/details?id=com.twinkle_toilet&quot;&gt;https://play.google.com/store/apps/details?id=com.twinkle_toilet&lt;/a&gt;&lt;/p&gt;
 &lt;h1&gt;使い方&lt;/h1&gt;
 &lt;p&gt;アプリを起動する。カメラを振り回してください。
 画像からトイレのピクトグラムを見つけた際に、音と画面の両方で教えてくれます。
@@ -1311,4 +1313,270 @@ Hello World!  &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 &lt;/ol&gt;
 &lt;h2&gt;雑記&lt;/h2&gt;
 &lt;p&gt;バックエンドで根強い人気があるgoを学びたいと思い、開発環境を整えました。&lt;br&gt;
-とはいえ、直近仕事で使うことはなさそうなので、「Go言語で作るインタプリタ」の写経専用環境になると思います。&lt;/p&gt;</content:encoded></item></channel></rss>
+とはいえ、直近仕事で使うことはなさそうなので、「Go言語で作るインタプリタ」の写経専用環境になると思います。&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Flutterによる個人androidアプリ開発にGitHub ActionsでCI/CDを導入した話]]></title><description><![CDATA[GitHub Actionsを使用して、Flutterのテスト、デプロイの自動化を行います。]]></description><link>https://www.linkedin.com/gatsby-starter-developer-blog/blog/00010</link><guid isPermaLink="false">https://www.linkedin.com/blog/00010Flutterによる個人androidアプリ開発にGitHub ActionsでCI/CDを導入した話</guid><dc:creator><![CDATA[So Ukiyama]]></dc:creator><pubDate>Wed, 15 Jan 2020 00:00:00 GMT</pubDate><content:encoded>&lt;h1&gt;TL;DR&lt;/h1&gt;
+&lt;p&gt;GitHub ActionsとFlutterを使用して、Google Playへのリリースの自動化をしたため、ご紹介させてください。&lt;br&gt;
+現在、CI/CDを導入しているアプリはこちらの&lt;a href=&quot;https://zenn.dev/uniocto/articles/2ac9566d3f1271&quot;&gt;クソアプリ&lt;/a&gt;になります。
+なお、本記事上では、使用したツールやactionsについて、用途は書きますがどういうツールかは説明する予定はございません。&lt;br&gt;
+なお作成にあたり、以下の記事をご参考にさせていただきました。&lt;br&gt;
+&lt;a href=&quot;https://qiita.com/kasa_le/items/d57ca63f19db0b352790&quot;&gt;https://qiita.com/kasa_le/items/d57ca63f19db0b352790&lt;/a&gt;&lt;br&gt;
+&lt;a href=&quot;https://blog.joshuadeguzman.net/continuous-delivery-for-your-flutter-using-fastlane-github-actions-android&quot;&gt;https://blog.joshuadeguzman.net/continuous-delivery-for-your-flutter-using-fastlane-github-actions-android&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;お急ぎの方は以下のyamlファイルを&lt;code class=&quot;language-text&quot;&gt;.github/workflows&lt;/code&gt;下に、&lt;code class=&quot;language-text&quot;&gt;test.sh&lt;/code&gt;をリポジトリ直下に置き、各secretsを登録すれば動作すると思います。  &lt;/p&gt;
+&lt;p&gt;登録するsecrets&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;GH_TOKEN・・・GitHubのトークン。releaseを作成する際に使用。&lt;/li&gt;
+&lt;li&gt;KEYSTORE_PASS・・・ビルド時に使用。&lt;/li&gt;
+&lt;li&gt;KEYSTORE&lt;em&gt;KEY&lt;/em&gt;PASS・・・ビルド時に使用。&lt;/li&gt;
+&lt;li&gt;PLAYSTORE&lt;em&gt;ACCOUNT&lt;/em&gt;KEY・・・Google Playにデプロイ時に使用。&lt;/li&gt;
+&lt;li&gt;PACKAGE_NAME・・・Google Play上の一意のアプリ名。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;yml&quot;&gt;&lt;pre class=&quot;language-yml&quot;&gt;&lt;code class=&quot;language-yml&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# .github/workflows/ci.yml&lt;/span&gt;
+&lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Flutter CI
+
+&lt;span class=&quot;token key atrule&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token key atrule&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;branches&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt; dev &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+
+&lt;span class=&quot;token key atrule&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token key atrule&quot;&gt;JAVA_VERSION&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; 12.x
+  &lt;span class=&quot;token key atrule&quot;&gt;FLUTTER_VERSION&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; 1.22.4
+  &lt;span class=&quot;token key atrule&quot;&gt;TEST_OUTPUT_DIR&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; test&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;reports
+
+&lt;span class=&quot;token key atrule&quot;&gt;jobs&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token key atrule&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;runs-on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; ubuntu&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;latest
+    &lt;span class=&quot;token key atrule&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/checkout@v2
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Set up JDK $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.JAVA_VERSION &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/setup&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;java@v1
+        &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;token key atrule&quot;&gt;java-version&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.JAVA_VERSION &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Set up flutter $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.FLUTTER_VERSION &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; subosito/flutter&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;action@v1
+        &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;token key atrule&quot;&gt;flutter-version&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.FLUTTER_VERSION &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Set up test environment
+        &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;token scalar string&quot;&gt;
+          flutter pub get
+          flutter pub global activate dart_dot_reporter
+          flutter pub global activate junitreport
+          pip3 install junit2html&lt;/span&gt;
+
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Analyze
+        &lt;span class=&quot;token key atrule&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; always()
+        &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;token scalar string&quot;&gt;
+          flutter analyze&lt;/span&gt;
+      
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Test
+        &lt;span class=&quot;token key atrule&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; always()
+        &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;token scalar string&quot;&gt;
+          export PATH=&quot;$PATH&quot;:&quot;${FLUTTER_HOME}/bin/cache/dart-sdk/bin&quot;
+          export PATH=&quot;$PATH&quot;:&quot;${FLUTTER_HOME}/.pub-cache/bin&quot;
+          type flutter
+          ./test.sh ${TEST_OUTPUT_DIR}&lt;/span&gt;
+
+      &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Arcive test results
+        &lt;span class=&quot;token key atrule&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; always()
+        &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/upload&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;artifact@v2
+        &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.TEST_OUTPUT_DIR &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+          &lt;span class=&quot;token key atrule&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.TEST_OUTPUT_DIR &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;yml&quot;&gt;&lt;pre class=&quot;language-yml&quot;&gt;&lt;code class=&quot;language-yml&quot;&gt;&lt;span class=&quot;token comment&quot;&gt;# .github/workflows/cd.yml&lt;/span&gt;
+&lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Google Play production release
+
+&lt;span class=&quot;token key atrule&quot;&gt;on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token key atrule&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;branches&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt; main &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;token key atrule&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token key atrule&quot;&gt;JAVA_VERSION&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; 12.x
+  &lt;span class=&quot;token key atrule&quot;&gt;FLUTTER_VERSION&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; 1.22.4
+  &lt;span class=&quot;token key atrule&quot;&gt;TEST_OUTPUT_DIR&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; test&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;reports
+  &lt;span class=&quot;token key atrule&quot;&gt;GITVERSION_VERSION&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&apos;5.x&apos;&lt;/span&gt;
+
+&lt;span class=&quot;token key atrule&quot;&gt;jobs&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;token key atrule&quot;&gt;version&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Create version number
+    &lt;span class=&quot;token key atrule&quot;&gt;runs-on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; ubuntu&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;latest
+    &lt;span class=&quot;token key atrule&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Allow unsecure commands
+      &lt;span class=&quot;token key atrule&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; ACTIONS_ALLOW_UNSECURE_COMMANDS
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; echo &apos;ACTIONS_ALLOW_UNSECURE_COMMANDS=true&apos; &lt;span class=&quot;token punctuation&quot;&gt;&gt;&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;&gt;&lt;/span&gt; $GITHUB_ENV
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/checkout@v1
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Fetch all history for all tags and branches
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;token scalar string&quot;&gt;
+        git config remote.origin.url https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}
+        git fetch --prune --depth=10000&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Install GitVersion
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; gittools/actions/gitversion/setup@v0.9.3
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;token key atrule&quot;&gt;versionSpec&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.GITVERSION_VERSION &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Use GitVersion
+      &lt;span class=&quot;token key atrule&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; gitversion
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; gittools/actions/gitversion/execute@v0.9.3
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Create version.txt with nuGetVersion
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; echo $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; steps.gitversion.outputs.nuGetVersion  &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;&gt;&lt;/span&gt; version.txt
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Upload version.txt
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/upload&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;artifact@v2
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; gitversion
+        &lt;span class=&quot;token key atrule&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; version.txt
+  &lt;span class=&quot;token key atrule&quot;&gt;build&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Build APK and Create release
+    &lt;span class=&quot;token key atrule&quot;&gt;needs&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt; version &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;runs-on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; ubuntu&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;latest
+    &lt;span class=&quot;token key atrule&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/checkout@v1
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Get version.txt
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/download&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;artifact@v2
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; gitversion
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Create new file without newline char from version.txt
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; tr &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;d &apos;\n&apos; &amp;lt; version.txt &lt;span class=&quot;token punctuation&quot;&gt;&gt;&lt;/span&gt; version1.txt
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Read version
+      &lt;span class=&quot;token key atrule&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; version
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; juliangruber/read&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;file&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;action@v1
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; version1.txt
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Update version in YAML
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; sed &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;i &apos;s/99.99.99+99/$&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; steps.version.outputs.content &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;+$&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; github.run_number &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;/g&apos; pubspec.yaml
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Update KeyStore password in gradle properties
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; sed &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;i &apos;s/&lt;span class=&quot;token comment&quot;&gt;#{KEYSTORE_PASS}#/${{ secrets.KEYSTORE_PASS }}/g&apos; android/key.properties&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Update KeyStore key password in gradle properties
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; sed &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;i &apos;s/&lt;span class=&quot;token comment&quot;&gt;#{KEYSTORE_KEY_PASS}#/${{ secrets.KEYSTORE_KEY_PASS }}/g&apos; android/key.properties&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/setup&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;java@v1
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;java-version&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.JAVA_VERSION &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; subosito/flutter&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;action@v1
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;flutter-version&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.FLUTTER_VERSION &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Set up test environment
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;token scalar string&quot;&gt;
+        flutter pub get
+        flutter pub global activate dart_dot_reporter
+        flutter pub global activate junitreport
+        pip3 install junit2html&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Analyze
+      &lt;span class=&quot;token key atrule&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; always()
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;token scalar string&quot;&gt;
+        flutter analyze&lt;/span&gt;
+    
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Test
+      &lt;span class=&quot;token key atrule&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; always()
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;|&lt;/span&gt;&lt;span class=&quot;token scalar string&quot;&gt;
+        export PATH=&quot;$PATH&quot;:&quot;${FLUTTER_HOME}/bin/cache/dart-sdk/bin&quot;
+        export PATH=&quot;$PATH&quot;:&quot;${FLUTTER_HOME}/.pub-cache/bin&quot;
+        type flutter
+        ./test.sh ${TEST_OUTPUT_DIR}&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Arcive test results
+      &lt;span class=&quot;token key atrule&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; always()
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/upload&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;artifact@v2
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.TEST_OUTPUT_DIR &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; env.TEST_OUTPUT_DIR &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Build aab
+      &lt;span class=&quot;token key atrule&quot;&gt;run&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; flutter build appbundle
+  
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Create a Release in GitHub
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; ncipollo/release&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;action@v1
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;artifacts&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token string&quot;&gt;&quot;build/app/outputs/apk/release/*.apk,build/app/outputs/bundle/release/app-release.aab&quot;&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;token&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; secrets.GH_TOKEN &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;tag&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; steps.version.outputs.content &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;commit&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; github.sha &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Upload app bundle
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/upload&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;artifact@v2
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; appbundle
+        &lt;span class=&quot;token key atrule&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; build/app/outputs/bundle/release/app&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;release.aab
+
+  &lt;span class=&quot;token key atrule&quot;&gt;release&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Release app to google play production track
+    &lt;span class=&quot;token key atrule&quot;&gt;needs&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;token punctuation&quot;&gt;[&lt;/span&gt; build &lt;span class=&quot;token punctuation&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;token key atrule&quot;&gt;runs-on&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; ubuntu&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;latest
+    &lt;span class=&quot;token key atrule&quot;&gt;steps&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/checkout@v1
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Get appbundle from artifacts
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; actions/download&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;artifact@v2
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; appbundle
+
+    &lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;token key atrule&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; Release app to production track
+      &lt;span class=&quot;token key atrule&quot;&gt;uses&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; r0adkll/upload&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;google&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;play@v1
+      &lt;span class=&quot;token key atrule&quot;&gt;with&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;serviceAccountJsonPlainText&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; secrets.PLAYSTORE_ACCOUNT_KEY &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;packageName&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; $&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;{&lt;/span&gt; secrets.PACKAGE_NAME &lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;token key atrule&quot;&gt;releaseFiles&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; app&lt;span class=&quot;token punctuation&quot;&gt;-&lt;/span&gt;release.aab
+        &lt;span class=&quot;token key atrule&quot;&gt;track&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; production
+        &lt;span class=&quot;token key atrule&quot;&gt;whatsNewDirectory&lt;/span&gt;&lt;span class=&quot;token punctuation&quot;&gt;:&lt;/span&gt; distribution/whatsnew&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;bash&quot;&gt;&lt;pre class=&quot;language-bash&quot;&gt;&lt;code class=&quot;language-bash&quot;&gt;&lt;span class=&quot;token shebang important&quot;&gt;#!/bin/sh&lt;/span&gt;
+&lt;span class=&quot;token function&quot;&gt;mkdir&lt;/span&gt; -p ./test-reports/ &lt;span class=&quot;token operator&quot;&gt;&lt;span class=&quot;token file-descriptor important&quot;&gt;2&lt;/span&gt;&gt;&lt;/span&gt;/dev/null
+
+flutter &lt;span class=&quot;token builtin class-name&quot;&gt;test&lt;/span&gt; --machine &lt;span class=&quot;token operator&quot;&gt;&gt;&lt;/span&gt; machine.log
+&lt;span class=&quot;token function&quot;&gt;cat&lt;/span&gt; machine.log &lt;span class=&quot;token operator&quot;&gt;|&lt;/span&gt; tojunit --output ./test-reports/TEST-results.xml
+
+flutter pub global run dart_dot_reporter machine.log
+
+python3 -m junit2htmlreport ./test-reports/TEST-results.xml&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h1&gt;実装時の要件&lt;/h1&gt;
+&lt;p&gt;実装時にはざっくりと以下の要件を叶える感じにしたいなと思い、実装しました。特にテストリポートのところは、qiitaの&lt;a href=&quot;https://qiita.com/kasa_le/items/d57ca63f19db0b352790&quot;&gt;kasa_leさんの記事&lt;/a&gt;を参考にさせていただきました。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;devブランチにpushすると自動テスト（analyze + test）が実行される&lt;/li&gt;
+&lt;li&gt;テストの結果は確認可能である&lt;/li&gt;
+&lt;li&gt;mainブランチにマージした際には、テストに問題なければ、Google Playにデプロイされること&lt;/li&gt;
+&lt;li&gt;リリースするものは、GitHub上でreleaseが作成される&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1&gt;使用させていただいたサービス/ツールなど&lt;/h1&gt;
+&lt;h2&gt;GitHub Actions&lt;/h2&gt;
+&lt;p&gt;GitHubが提供しているCI/CDツールです。無料ユーザーでも1日約66時間は利用できるため、かなり使いたい放題です。&lt;br&gt;
+&lt;a href=&quot;https://docs.github.com/ja/free-pro-team@latest/actions/learn-github-actions&quot;&gt;https://docs.github.com/ja/free-pro-team@latest/actions/learn-github-actions&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;action系&lt;/h2&gt;
+&lt;p&gt;使わせていただいたアクションの一覧になります。強い感謝の気持ちしかないです。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/actions/checkout&quot;&gt;actions/checkout@v1&lt;/a&gt;・・・workflow内でリポジトリにアクセスする必要がある時に利用&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/gittools/actions&quot;&gt;gittools/actions/gitversion/setup@v0.9.3&lt;/a&gt;・・・GitVersionのセットアップ&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/gittools/actions&quot;&gt;gittools/actions/gitversion/execute@v0.9.3&lt;/a&gt;・・・GitVersionの実行&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/actions/upload-artifact&quot;&gt;actions/upload-artifact@v2&lt;/a&gt;・・・特定のファイルをGitHubからダウンロード可能にする処理&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/actions/download-artifact&quot;&gt;actions/download-artifact@v2&lt;/a&gt;・・・ワークフロー内で一度アップロードしたファイルをワークフローの内にダウンロード&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/juliangruber/read-file-action&quot;&gt;juliangruber/read-file-action@v1&lt;/a&gt;・・・ファイル読み込み処理&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/actions/setup-java&quot;&gt;actions/setup-java@v1&lt;/a&gt;・・・Javaのセットアップ&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/subosito/flutter-action&quot;&gt;subosito/flutter-action@v1&lt;/a&gt;・・・flutterのセットアップ&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/ncipollo/release-action&quot;&gt;ncipollo/release-action@v1&lt;/a&gt;・・・GitHub上にリリースの作成&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/r0adkll/upload-google-play&quot;&gt;r0adkll/upload-google-play@v1&lt;/a&gt;・・・Google Playにアップロードする処理。リリース先はbetaなど可能&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;flutter&lt;/h2&gt;
+&lt;p&gt;Googleが作成したDartのライブラリです。使いやすくて大好きです。&lt;br&gt;
+&lt;a href=&quot;https://github.com/flutter/flutter&quot;&gt;https://github.com/flutter/flutter&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;dart&lt;em&gt;dot&lt;/em&gt;reporter&lt;/h2&gt;
+&lt;p&gt;Dart/Flutterに関するテストリポートを作成してくれるDartのライブラリです。テスト結果をいい感じにするために使用しています。&lt;br&gt;
+&lt;a href=&quot;https://github.com/apastuhov/dart_dot_reporter&quot;&gt;https://github.com/apastuhov/dart_dot_reporter&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;junitreport&lt;/h2&gt;
+&lt;p&gt;xml 形式のレポートを生成するツールです。テスト結果をいい感じにするために使用しています。&lt;br&gt;
+&lt;a href=&quot;https://github.com/RationaleEmotions/junitreport&quot;&gt;https://github.com/RationaleEmotions/junitreport&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;junit2html&lt;/h2&gt;
+&lt;p&gt;junit xml ファイルから単一の html ファイルを生成するツールです。
+テスト結果をいい感じにしてくれます。Python2系はEOLを2020年に迎えたので、python3を指定する必要があります。&lt;br&gt;
+&lt;a href=&quot;https://github.com/inorton/junit2html&quot;&gt;https://github.com/inorton/junit2html&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;所感&lt;/h1&gt;
+&lt;p&gt;CI/CDを導入してから、デプロイの億劫さもなくなり、だいぶ楽になりました。
+もう戻りたくないです。&lt;/p&gt;</content:encoded></item></channel></rss>
