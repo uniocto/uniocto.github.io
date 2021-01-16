@@ -58,7 +58,7 @@ class About extends React.Component {
           </div>
           <div className={style.content}>
             <h1>浮山 颯</h1>
-            <p>技術に振り回されている開発者です。エンジニアになりたい。</p>
+            <p>技術に振り回されている開発者です。</p>
             <br />
             <h1>History</h1>
 
